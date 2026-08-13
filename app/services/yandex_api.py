@@ -37,8 +37,7 @@ async def create_simple_report(
     upload_url = await client.create_excel_file(filename)
 
     output = BytesIO()
-    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
-    try:
+    with xlsxwriter.Workbook(output, {'in_memory': True}) as workbook:
         worksheet = workbook.add_worksheet('Отчёт')
 
         bold = workbook.add_format({'bold': True})
@@ -76,8 +75,6 @@ async def create_simple_report(
             f'Итого проектов: {len(projects)}',
             bold,
         )
-    finally:
-        workbook.close()
 
     output.seek(0)
     await client.upload_file(upload_url, output.read())
