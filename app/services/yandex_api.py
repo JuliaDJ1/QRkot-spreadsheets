@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import List
 
@@ -36,48 +35,50 @@ async def create_simple_report(
 
     upload_url = await client.create_excel_file(filename)
 
-    output = BytesIO()
-    with xlsxwriter.Workbook(output, {'in_memory': True}) as workbook:
-        worksheet = workbook.add_worksheet('Отчёт')
+    with BytesIO() as output:
+        with xlsxwriter.Workbook(output, {'in_memory': True}) as workbook:
+            worksheet = workbook.add_worksheet('Отчёт')
 
-        bold = workbook.add_format({'bold': True})
-        header_fmt = workbook.add_format({
-            'bold': True,
-            'bg_color': '#D9E1F2',
-            'border': 1,
-        })
-        cell_fmt = workbook.add_format({'border': 1})
+            bold = workbook.add_format({'bold': True})
+            header_fmt = workbook.add_format({
+                'bold': True,
+                'bg_color': '#D9E1F2',
+                'border': 1,
+            })
+            cell_fmt = workbook.add_format({'border': 1})
 
-        worksheet.write(
-            0, 0,
-            f'Отчёт от {now.strftime("%d.%m.%Y %H:%M")}',
-            bold,
-        )
+            worksheet.write(
+                0, 0,
+                f'Отчёт от {now.strftime("%d.%m.%Y %H:%M")}',
+                bold,
+            )
 
-        headers = ['Название проекта', 'Время сбора', 'Описание']
-        for col, header in enumerate(headers):
-            worksheet.write(1, col, header, header_fmt)
+            headers = ['Название проекта', 'Время сбора', 'Описание']
+            for col, header in enumerate(headers):
+                worksheet.write(1, col, header, header_fmt)
 
-        for row, project in enumerate(projects, start=2):
-            if project.close_date and project.create_date:
-                delta = project.close_date - project.create_date
-                time_str = format_time_delta(delta)
-            else:
-                time_str = '—'
+            for row, project in enumerate(projects, start=2):
+                if project.close_date and project.create_date:
+                    delta = project.close_date - project.create_date
+                    time_str = format_time_delta(delta)
+                else:
+                    time_str = '—'
 
-            worksheet.write(row, 0, project.name, cell_fmt)
-            worksheet.write(row, 1, time_str, cell_fmt)
-            worksheet.write(row, 2, project.description, cell_fmt)
+                worksheet.write(row, 0, project.name, cell_fmt)
+                worksheet.write(row, 1, time_str, cell_fmt)
+                worksheet.write(row, 2, project.description, cell_fmt)
 
-        total_row = len(projects) + 2
-        worksheet.write(
-            total_row, 0,
-            f'Итого проектов: {len(projects)}',
-            bold,
-        )
+            total_row = len(projects) + 2
+            worksheet.write(
+                total_row, 0,
+                f'Итого проектов: {len(projects)}',
+                bold,
+            )
 
-    output.seek(0)
-    await client.upload_file(upload_url, output.read())
+        output.seek(0)
+        file_content = output.read()
+
+    await client.upload_file(upload_url, file_content)
     public_url = await client.publish_file(filename)
 
     return public_url
